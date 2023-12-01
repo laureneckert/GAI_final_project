@@ -12,7 +12,7 @@ Model: CycleGAN
 
 import tensorflow as tf
 from keras import Model
-from keras.layers import Input, Conv2D, Conv2DTranspose, Activation, LeakyReLU, Add, BatchNormalization, UpSampling2D
+from keras.layers import Input, Conv2D, Activation, LeakyReLU, Add, BatchNormalization, UpSampling2D
 from keras.optimizers import Adam
 from keras.losses import BinaryCrossentropy, MeanAbsoluteError
 
@@ -133,20 +133,21 @@ def compile_models(generator, discriminator, lr=0.0002, beta_1=0.5):
     generator.compile(loss='binary_crossentropy', optimizer=Adam(learning_rate=lr, beta_1=beta_1))
     discriminator.compile(loss='binary_crossentropy', optimizer=Adam(learning_rate=lr, beta_1=beta_1))
 
-def train_model(art_images, photo_images, generator_AtoB, generator_BtoA, discriminator_A, discriminator_B, epochs, batch_size):
+def train_model(art_images_gen, photo_images_gen, generator_AtoB, generator_BtoA, discriminator_A, discriminator_B, epochs, steps_per_epoch):
     """
-    Train the CycleGAN models on the provided datasets.
+    Train CycleGAN models on provided datasets.
 
     Parameters:
-    art_images (Iterator): Batched images from the ArtBench-10 dataset.
-    photo_images (Iterator): Batched images from the ImageNet dataset.
-    generator_AtoB (Model): Generator model to translate from domain A to B.
-    generator_BtoA (Model): Generator model to translate from domain B to A.
-    discriminator_A (Model): Discriminator model for domain A.
-    discriminator_B (Model): Discriminator model for domain B.
-    epochs (int): Number of epochs for training.
-    batch_size (int): Size of the image batches.
+    art_images_gen (Iterator): Generator for ArtBench-10 dataset images.
+    photo_images_gen (Iterator): Generator for ImageNet dataset images.
+    generator_AtoB (Model): Generator model from domain A (Photo) to B (Art).
+    generator_BtoA (Model): Generator model from domain B (Art) to A (Photo).
+    discriminator_A (Model): Discriminator model for domain A (Photo).
+    discriminator_B (Model): Discriminator model for domain B (Art).
+    epochs (int): Number of training epochs.
+    steps_per_epoch (int): Number of steps per epoch.
     """
+
     # Loss functions
     adversarial_loss = BinaryCrossentropy(from_logits=True)
     cycle_loss = MeanAbsoluteError()
@@ -158,36 +159,52 @@ def train_model(art_images, photo_images, generator_AtoB, generator_BtoA, discri
 
     # Training loop
     for epoch in range(epochs):
-        # Sample a batch of images from both domains
-            ...
+        print(f"Epoch {epoch+1}/{epochs}")
+
+        for step in range(steps_per_epoch):
+            # Get a batch of images from both domains
+            art_images = next(art_images_gen)
+            photo_images = next(photo_images_gen)
 
             with tf.GradientTape(persistent=True) as tape:
-                # Forward cycle (Photo to Art to Photo)
-                fake_art_images = generator_AtoB(batch_photo_images)
-                cycled_photo_images = generator_BtoA(fake_art_images)
+                # Forward cycle: Photo -> Art -> Photo
+                fake_art_images = generator_AtoB(photo_images, training=True)
+                cycled_photo_images = generator_BtoA(fake_art_images, training=True)
 
-                # Backward cycle (Art to Photo to Art)
-                fake_photo_images = generator_BtoA(batch_art_images)
-                cycled_art_images = generator_AtoB(fake_photo_images)
+                # Backward cycle: Art -> Photo -> Art
+                fake_photo_images = generator_BtoA(art_images, training=True)
+                cycled_art_images = generator_AtoB(fake_photo_images, training=True)
 
-                # Identity mapping (optional)
-                same_art_images = generator_AtoB(batch_art_images)
-                same_photo_images = generator_BtoA(batch_photo_images)
+                # Discriminator outputs
+                disc_real_photo = discriminator_A(photo_images, training=True)
+                disc_fake_photo = discriminator_A(fake_photo_images, training=True)
+                disc_real_art = discriminator_B(art_images, training=True)
+                disc_fake_art = discriminator_B(fake_art_images, training=True)
 
-                # Discriminator output
-                ...
+                # Generator adversarial loss
+                gen_AtoB_loss = adversarial_loss(tf.ones_like(disc_fake_art), disc_fake_art)
+                gen_BtoA_loss = adversarial_loss(tf.ones_like(disc_fake_photo), disc_fake_photo)
 
-                # Calculate losses
-                total_cycle_loss = cycle_loss(batch_art_images, cycled_art_images) + cycle_loss(batch_photo_images, cycled_photo_images)
-                total_identity_loss = identity_loss(batch_art_images, same_art_images) + identity_loss(batch_photo_images, same_photo_images)
-                total_gen_AtoB_loss = adversarial_loss(tf.ones_like(disc_fake_art), disc_fake_art) + total_cycle_loss + total_identity_loss
-                total_gen_BtoA_loss = adversarial_loss(tf.ones_like(disc_fake_photo), disc_fake_photo) + total_cycle_loss + total_identity_loss
-                ...
+                # Total generator loss
+                total_gen_AtoB_loss = gen_AtoB_loss + cycle_loss(photo_images, cycled_photo_images) + identity_loss(art_images, fake_art_images)
+                total_gen_BtoA_loss = gen_BtoA_loss + cycle_loss(art_images, cycled_art_images) + identity_loss(photo_images, fake_photo_images)
 
-                # Update the weights
-                ...
+                # Discriminator loss
+                disc_A_loss = adversarial_loss(tf.ones_like(disc_real_photo), disc_real_photo) + adversarial_loss(tf.zeros_like(disc_fake_photo), disc_fake_photo)
+                disc_B_loss = adversarial_loss(tf.ones_like(disc_real_art), disc_real_art) + adversarial_loss(tf.zeros_like(disc_fake_art), disc_fake_art)
 
-    return generator_AtoB, generator_BtoA
+            # Calculate gradients and update model weights
+            generator_AtoB_gradients = tape.gradient(total_gen_AtoB_loss, generator_AtoB.trainable_variables)
+            generator_BtoA_gradients = tape.gradient(total_gen_BtoA_loss, generator_BtoA.trainable_variables)
+            discriminator_A_gradients = tape.gradient(disc_A_loss, discriminator_A.trainable_variables)
+            discriminator_B_gradients = tape.gradient(disc_B_loss, discriminator_B.trainable_variables)
+
+            gen_optimizer.apply_gradients(zip(generator_AtoB_gradients, generator_AtoB.trainable_variables))
+            gen_optimizer.apply_gradients(zip(generator_BtoA_gradients, generator_BtoA.trainable_variables))
+            disc_optimizer.apply_gradients(zip(discriminator_A_gradients, discriminator_A.trainable_variables))
+            disc_optimizer.apply_gradients(zip(discriminator_B_gradients, discriminator_B.trainable_variables))
+
+        print(f"Completed Epoch {epoch+1}")
 
 def save_model(model, model_name, save_dir='models'):
     """

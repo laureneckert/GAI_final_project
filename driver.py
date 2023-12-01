@@ -14,32 +14,38 @@ import driverFunctions as df
 import MLmodel
 
 def main():
-    """
-    Main function to run the CycleGAN model for style transfer.
-    """
-    # Parameters
     epochs = 10
     batch_size = 1
     model_save_name = 'art_style_generator'
-    train_model = True
+    train_model_flag = True  # Flag to control training or loading of model
 
-    if train_model:
+    if train_model_flag:
         # Load datasets and train the model
-        art_images, photo_images = df.load_datasets()
-        generator, discriminator = MLmodel.build_generator(), MLmodel.build_discriminator()
-        MLmodel.compile_models(generator, discriminator)
-        MLmodel.train_model(art_images, photo_images, generator, discriminator, epochs, batch_size)
-        MLmodel.save_model(generator, model_save_name)
+        art_images_gen, photo_images_gen = df.load_datasets('path/to/artbench', 'path/to/imagenet', batch_size)
+        generator_AtoB, generator_BtoA = MLmodel.build_generator(), MLmodel.build_generator()
+        discriminator_A, discriminator_B = MLmodel.build_discriminator(), MLmodel.build_discriminator()
+
+        MLmodel.compile_models(generator_AtoB, discriminator_A)
+        MLmodel.compile_models(generator_BtoA, discriminator_B)
+
+        MLmodel.train_model(art_images_gen, photo_images_gen, generator_AtoB, generator_BtoA, discriminator_A, discriminator_B, epochs, steps_per_epoch=100)
+        MLmodel.save_model(generator_AtoB, model_save_name + '_AtoB')
+        MLmodel.save_model(generator_BtoA, model_save_name + '_BtoA')
     else:
-        # Load a pre-trained model
-        generator = MLmodel.load_model(model_save_name)
-        if generator is None:
-            print("Model not found. Exiting.")
+        # Load pre-trained model
+        generator_AtoB = MLmodel.load_model(model_save_name + '_AtoB')
+        generator_BtoA = MLmodel.load_model(model_save_name + '_BtoA')
+        if generator_AtoB is None or generator_BtoA is None:
+            print("Model(s) not found. Exiting.")
             return
+
+    # Visualize model architectures
+    df.visualize_model(generator_AtoB, filename='generator_AtoB_architecture.png')
+    df.visualize_model(generator_BtoA, filename='generator_BtoA_architecture.png')
 
     # Style transfer
     input_image_path = input("Enter the path of your photograph: ")
-    styled_image = df.apply_art_style(input_image_path, generator)
+    styled_image = df.apply_art_style(input_image_path, generator_AtoB)  # Choose the appropriate generator
 
     # Output
     df.save_or_display_image(styled_image, save=False, display=True)

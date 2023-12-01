@@ -13,9 +13,9 @@ Model: CycleGAN
 
 import numpy as np
 import matplotlib.pyplot as plt
-from keras.preprocessing.image import img_to_array, load_img, ImageDataGenerator
 import cv2
-import os
+from keras.preprocessing.image import img_to_array, load_img, ImageDataGenerator
+from keras.utils import plot_model
 
 def load_and_preprocess_image(image_path, target_size=(256, 256)):
     """
@@ -117,3 +117,14 @@ def load_datasets(artbench_path, imagenet_path, batch_size, target_size=(256, 25
     photo_images_generator = image_generator(imagenet_path, batch_size, target_size)
 
     return art_images_generator, photo_images_generator
+
+def visualize_model(model, filename='model_architecture.png'):
+    """
+    Generate an image of the model architecture.
+
+    Parameters:
+    model (tf.keras.Model): The Keras model to be visualized.
+    filename (str): The name of the file where to save the model architecture image.
+    """
+    plot_model(model, to_file=filename, show_shapes=True, show_layer_names=True)
+    print(f"Model architecture saved as {filename}")
