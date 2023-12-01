@@ -6,6 +6,7 @@ Lauren Eckert
 Topic: Use transfer learning to apply artistic genre styles to a personal photograph. The model will be ResNet and the art dataset will be ArtBench-10. If not successful at applying the style transfer, we can scale back the project to something simpler too.
 
 Edit: We will be using CycleGAN as a model instead of ResNet. The photo dataset will be ImageNet.
+Edit: We will be using CycleGAN as a framework and using ResNet for the generators and then PatchGAN as the discriminators.
 
 Environment set up:
 - matplotlib

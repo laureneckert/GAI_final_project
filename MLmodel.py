@@ -8,8 +8,8 @@ Project topic: transitive learning - applying art historical styles to personal 
 Databases: ArtBench-10, ImageNet
 Model: CycleGAN
 """
-
 # MLmodel.py
+
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Conv2D, Conv2DTranspose, Activation, LeakyReLU, Concatenate

@@ -8,8 +8,9 @@ Project topic: transitive learning - applying art historical styles to personal 
 Databases: ArtBench-10, ImageNet
 Model: CycleGAN
 
-driverFunctions.py
 """
+#driverFunctions.py
+
 import numpy as np
 import matplotlib.pyplot as plt
 from keras.preprocessing.image import img_to_array, load_img
