@@ -59,15 +59,49 @@ def compile_models(generator, discriminator, lr=0.0002, beta_1=0.5):
     # For the discriminator, freeze generator's layers
     discriminator.compile(loss='binary_crossentropy', optimizer=Adam(lr=lr, beta_1=beta_1))
 
-def train_model(art_images, photo_images, generator, discriminator, epochs, batch_size):
-    """
-    Train the CycleGAN model.
-    art_images: Art images from ArtBench-10 dataset
-    photo_images: Photograph images from ImageNet dataset
-    """
+def train_model(art_images, photo_images, generator_AtoB, generator_BtoA, discriminator_A, discriminator_B, epochs, batch_size):
+    # Define loss functions
+    adversarial_loss = BinaryCrossentropy(from_logits=True)
+    cycle_loss = MeanAbsoluteError()
+    identity_loss = MeanAbsoluteError()
+
+    # Define the optimizers
+    gen_optimizer = Adam(learning_rate=0.0002, beta_1=0.5)
+    disc_optimizer = Adam(learning_rate=0.0002, beta_1=0.5)
+
     for epoch in range(epochs):
-        # Implement the training logic here
-        pass
+        for i in range(min(len(art_images), len(photo_images)) // batch_size):
+            # Sample a batch of images from both domains
+            ...
+
+            with tf.GradientTape(persistent=True) as tape:
+                # Forward cycle (Photo to Art to Photo)
+                fake_art_images = generator_AtoB(batch_photo_images)
+                cycled_photo_images = generator_BtoA(fake_art_images)
+
+                # Backward cycle (Art to Photo to Art)
+                fake_photo_images = generator_BtoA(batch_art_images)
+                cycled_art_images = generator_AtoB(fake_photo_images)
+
+                # Identity mapping (optional)
+                same_art_images = generator_AtoB(batch_art_images)
+                same_photo_images = generator_BtoA(batch_photo_images)
+
+                # Discriminator output
+                ...
+
+                # Calculate losses
+                total_cycle_loss = cycle_loss(batch_art_images, cycled_art_images) + cycle_loss(batch_photo_images, cycled_photo_images)
+                total_identity_loss = identity_loss(batch_art_images, same_art_images) + identity_loss(batch_photo_images, same_photo_images)
+                total_gen_AtoB_loss = adversarial_loss(tf.ones_like(disc_fake_art), disc_fake_art) + total_cycle_loss + total_identity_loss
+                total_gen_BtoA_loss = adversarial_loss(tf.ones_like(disc_fake_photo), disc_fake_photo) + total_cycle_loss + total_identity_loss
+                ...
+
+                # Update the weights
+                ...
+
+    return generator_AtoB, generator_BtoA
+
 
 def save_model(model, model_name, save_dir='models'):
     """
