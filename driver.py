@@ -19,9 +19,11 @@ def main():
     model_save_name = 'art_style_generator'
     train_model_flag = True  # Flag to control training or loading of model
 
+    pathToArtBenchDataset = r"C:\Users\laure\Dropbox\School\BSE\Coursework\23 Fall\GenerativeAI\code for projects\GAIfinalproject\artbench-10-python"
+    pathToImageNetDataset = ""
     if train_model_flag:
         # Load datasets and train the model
-        art_images_gen, photo_images_gen = df.load_datasets('path/to/artbench', 'path/to/imagenet', batch_size)
+        art_images_gen, photo_images_gen = df.load_datasets(pathToArtBenchDataset, pathToImageNetDataset, batch_size)
         generator_AtoB, generator_BtoA = MLmodel.build_generator(), MLmodel.build_generator()
         discriminator_A, discriminator_B = MLmodel.build_discriminator(), MLmodel.build_discriminator()
 

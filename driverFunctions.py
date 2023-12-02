@@ -14,6 +14,7 @@ Model: CycleGAN
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+import tensorflow-datasets as tfds #this is not fucking working
 from keras.preprocessing.image import img_to_array, load_img, ImageDataGenerator
 from keras.utils import plot_model
 
@@ -128,3 +129,23 @@ def visualize_model(model, filename='model_architecture.png'):
     """
     plot_model(model, to_file=filename, show_shapes=True, show_layer_names=True)
     print(f"Model architecture saved as {filename}")
+
+def load_imagenet_subset(batch_size, num_samples, img_size=(256, 256), shuffle_buffer_size=10000):
+    """
+    Load a random subset of the ImageNet dataset.
+
+    Parameters:
+    batch_size (int): The size of the batches in which the data will be loaded.
+    num_samples (int): Total number of samples to take from the dataset.
+    img_size (tuple): The target size for image resizing.
+    shuffle_buffer_size (int): Size of the shuffle buffer. Larger sizes result in better randomness at the cost of more memory.
+
+    Returns:
+    tf.data.Dataset: The preprocessed, randomized subset of the ImageNet dataset.
+    """
+    dataset = tfds.load('imagenet_v2', split='train', as_supervised=True)
+    dataset = dataset.shuffle(shuffle_buffer_size)  # Shuffle the dataset
+    dataset = dataset.take(num_samples)  # Take only num_samples images
+    dataset = dataset.map(lambda image, label: preprocess_image(image, label, img_size))
+    dataset = dataset.batch(batch_size)
+    return dataset
