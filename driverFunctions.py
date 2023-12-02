@@ -14,7 +14,7 @@ Model: CycleGAN
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-import tensorflow-datasets as tfds #this is not fucking working
+import tensorflow_datasets as tfds #this is not fucking working
 from keras.preprocessing.image import img_to_array, load_img, ImageDataGenerator
 from keras.utils import plot_model
 

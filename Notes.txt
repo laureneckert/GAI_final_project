@@ -107,3 +107,16 @@ Program Flow:
 
     End of Program Execution:
         After the styled image is saved or displayed, the program concludes its execution.
+
+-----------------------------------------------------------------
+TO DO:
+
+    Error Handling and Logging:
+        Consider adding more error handling and logging throughout the code, especially in critical sections like model loading, dataset processing, and during the training loop.
+
+    Testing and Debugging:
+        After addressing these points, thoroughly test each component of your program to ensure that it functions correctly, both in training and inference modes.
+
+    Documentation and Comments:
+    Add comments and documentation within your code for clarity, especially for complex sections like the model-building and training parts.
+
