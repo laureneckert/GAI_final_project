@@ -14,25 +14,33 @@ Model: CycleGAN
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-import tensorflow_datasets as tfds #this is not fucking working
+import tensorflow_datasets as tfds
+import tensorflow as tf
 from keras.preprocessing.image import img_to_array, load_img, ImageDataGenerator
 from keras.utils import plot_model
 
-def load_and_preprocess_image(image_path, target_size=(256, 256)):
+def preprocess_image(image, target_size=(256, 256), normalize=True):
     """
-    Load and preprocess an image from the specified path.
+    Preprocess an image by resizing and optionally normalizing it.
 
     Parameters:
-    image_path (str): Path to the image file.
-    target_size (tuple): Desired size for the image as (width, height).
+    image (Tensor or Image): The image to preprocess.
+    target_size (tuple): The target size for resizing.
+    normalize (bool): Whether to normalize the image.
 
     Returns:
-    numpy.ndarray: Preprocessed image array.
+    Tensor: The preprocessed image tensor.
     """
-    image = load_img(image_path, target_size=target_size)
-    image = img_to_array(image)
-    image = (image - 127.5) / 127.5  # Normalize the image
-    return np.expand_dims(image, axis=0)
+    if not isinstance(image, tf.Tensor):
+        image = img_to_array(image)
+
+    image = tf.image.resize(image, target_size)
+
+    if normalize:
+        image = (image / 127.5) - 1
+
+    return image
+
 
 def postprocess_image(image_tensor):
     """
@@ -51,18 +59,10 @@ def postprocess_image(image_tensor):
     return image_tensor
 
 def apply_art_style(image_path, generator):
-    """
-    Apply the art style transformation to an image using the provided generator.
-
-    Parameters:
-    image_path (str): Path to the input image.
-    generator (tf.keras.Model): The generator model for style transfer.
-
-    Returns:
-    numpy.ndarray: The image with the art style applied.
-    """
-    input_image = load_and_preprocess_image(image_path)
-    generated_image = generator.predict(input_image)
+    input_image = load_img(image_path)
+    processed_image = preprocess_image(input_image, normalize=True)
+    processed_image = np.expand_dims(processed_image, axis=0)
+    generated_image = generator.predict(processed_image)
     return postprocess_image(generated_image)
 
 def save_or_display_image(image, save=False, display=True, save_path='styled_image.jpg'):
@@ -131,21 +131,10 @@ def visualize_model(model, filename='model_architecture.png'):
     print(f"Model architecture saved as {filename}")
 
 def load_imagenet_subset(batch_size, num_samples, img_size=(256, 256), shuffle_buffer_size=10000):
-    """
-    Load a random subset of the ImageNet dataset.
-
-    Parameters:
-    batch_size (int): The size of the batches in which the data will be loaded.
-    num_samples (int): Total number of samples to take from the dataset.
-    img_size (tuple): The target size for image resizing.
-    shuffle_buffer_size (int): Size of the shuffle buffer. Larger sizes result in better randomness at the cost of more memory.
-
-    Returns:
-    tf.data.Dataset: The preprocessed, randomized subset of the ImageNet dataset.
-    """
     dataset = tfds.load('imagenet_v2', split='train', as_supervised=True)
-    dataset = dataset.shuffle(shuffle_buffer_size)  # Shuffle the dataset
-    dataset = dataset.take(num_samples)  # Take only num_samples images
+    dataset = dataset.shuffle(shuffle_buffer_size)
+    dataset = dataset.take(num_samples)
     dataset = dataset.map(lambda image, label: preprocess_image(image, label, img_size))
     dataset = dataset.batch(batch_size)
     return dataset
+

@@ -110,6 +110,10 @@ Program Flow:
 
 -----------------------------------------------------------------
 TO DO:
+- load imagenet database
+- figure out how to select for art genre
+- saving/loading discriminators
+
 
     Error Handling and Logging:
         Consider adding more error handling and logging throughout the code, especially in critical sections like model loading, dataset processing, and during the training loop.
