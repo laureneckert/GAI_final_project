@@ -8,9 +8,10 @@ Project topic: transitive learning - applying art historical styles to personal 
 Databases: ArtBench-10, ImageNet
 Model: CycleGAN
 """
-#driver.py
+# driver.py
 
-import driverFunctions as df
+import image_processing as ip
+import data_handling as dh
 import MLmodel
 
 def main():
@@ -23,11 +24,9 @@ def main():
     path_to_artbench_dataset = r"C:\Users\laure\Dropbox\School\BSE\Coursework\23 Fall\GenerativeAI\code for projects\GAIfinalproject\artbench-10-python"
 
     if train_model_flag:
-        # Load ArtBench dataset
-        art_images_gen = df.image_generator(path_to_artbench_dataset, batch_size)
-
-        # Load ImageNet subset
-        photo_images_gen = df.load_imagenet_subset(batch_size, num_samples_imagenet)
+        # Load datasets
+        art_images_gen = dh.image_generator(path_to_artbench_dataset, batch_size)
+        photo_images_gen = dh.load_imagenet_subset(batch_size, num_samples_imagenet)
 
         # Initialize and compile models
         generator_AtoB, generator_BtoA = MLmodel.build_generator(), MLmodel.build_generator()
@@ -40,26 +39,32 @@ def main():
         MLmodel.train_model(art_images_gen, photo_images_gen, generator_AtoB, generator_BtoA, discriminator_A, discriminator_B, epochs, steps_per_epoch=100)
 
         # Save the trained models
-        MLmodel.save_model(generator_AtoB, model_save_name + '_AtoB')
-        MLmodel.save_model(generator_BtoA, model_save_name + '_BtoA')
+        model_names = ['_AtoB', '_BtoA', '_DiscriminatorA', '_DiscriminatorB']
+        for model, name in zip([generator_AtoB, generator_BtoA, discriminator_A, discriminator_B], model_names):
+            MLmodel.save_model(model, model_save_name + name)
     else:
         # Load pre-trained models
         generator_AtoB = MLmodel.load_model(model_save_name + '_AtoB')
         generator_BtoA = MLmodel.load_model(model_save_name + '_BtoA')
-        if not generator_AtoB or not generator_BtoA:
-            print("Model(s) not found. Exiting.")
+        discriminator_A = MLmodel.load_model(model_save_name + '_DiscriminatorA')
+        discriminator_B = MLmodel.load_model(model_save_name + '_DiscriminatorB')
+        
+        if not all([generator_AtoB, generator_BtoA, discriminator_A, discriminator_B]):
+            print("One or more models not found. Exiting.")
             return
-            
-    # Visualize model architectures
-    df.visualize_model(generator_AtoB, filename='generator_AtoB_architecture.png')
-    df.visualize_model(generator_BtoA, filename='generator_BtoA_architecture.png')
+          
+    # visualize model architectures for both generators and discriminators
+    dh.visualize_model(generator_AtoB, filename='generator_AtoB_architecture.png')
+    dh.visualize_model(generator_BtoA, filename='generator_BtoA_architecture.png')
+    dh.visualize_model(discriminator_A, filename='discriminator_A_architecture.png')
+    dh.visualize_model(discriminator_B, filename='discriminator_B_architecture.png')
 
     # Style transfer
     input_image_path = input("Enter the path of your photograph: ")
-    styled_image = df.apply_art_style(input_image_path, generator_AtoB)  # Choose the appropriate generator
+    styled_image = ip.apply_art_style(input_image_path, generator_AtoB)  # Choose the appropriate generator
 
     # Output
-    df.save_or_display_image(styled_image, save=False, display=True)
+    ip.save_or_display_image(styled_image, save=False, display=True)
 
 if __name__ == "__main__":
     main()
