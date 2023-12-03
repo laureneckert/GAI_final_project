@@ -9,10 +9,12 @@ Databases: ArtBench-10, ImageNet
 Model: CycleGAN
 """
 # driver.py
-
+import tensorflow as tf
 import image_processing as ip
 import data_handling as dh
 import MLmodel
+import numpy as np
+
 
 def main():
     epochs = 10

@@ -72,6 +72,3 @@ def visualize_model(model, filename='model_architecture.png'):
     """
     plot_model(model, to_file=filename, show_shapes=True, show_layer_names=True)
     print(f"Model architecture saved as {filename}")
-
-
-
