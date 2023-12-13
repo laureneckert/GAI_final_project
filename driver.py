@@ -4,9 +4,9 @@ Jaric Abadinas
 
 Generative AI
 Final Project
-Project topic: transitive learning - applying art historical styles to personal photos
-Databases: ArtBench-10, ImageNet
-Model: CycleGAN
+Project topic: transitive learning - applying impressionism style to landscape photos
+Databases: ArtBench-10, Landscape Photos by Arnaud Rougetet
+Model: CycleGAN, ResNet, PatchGan
 """
 # driver.py
 import tensorflow as tf
@@ -19,17 +19,18 @@ import numpy as np
 def main():
     epochs = 10
     batch_size = 1
-    model_save_name = 'art_style_generator'
+    model_save_name = 'impressionism_style_generator'
     train_model_flag = True
-    num_samples_imagenet = 1000  # Number of samples from ImageNet
 
-    path_to_artbench_dataset = r"C:\Users\laure\Dropbox\School\BSE\Coursework\23 Fall\GenerativeAI\code for projects\GAIfinalproject\artbench-10-python"
+    # Paths to datasets
+    path_to_artbench_dataset = r"C:\Users\laure\Dropbox\School\BSE\Coursework\23 Fall\GenerativeAI\code for projects\GAIfinalproject\impressionist_landscapes_resized_1024"
+    path_to_landscape_dataset = r"C:\Users\laure\Dropbox\School\BSE\Coursework\23 Fall\GenerativeAI\code for projects\GAIfinalproject\landscape_photos" 
 
     if train_model_flag:
         # Load datasets
         art_images_gen = dh.image_generator(path_to_artbench_dataset, batch_size)
-        photo_images_gen = dh.load_imagenet_subset(batch_size, num_samples_imagenet)
-
+        photo_images_gen = dh.image_generator(path_to_landscape_dataset, batch_size)
+    
         # Initialize and compile models
         generator_AtoB, generator_BtoA = MLmodel.build_generator(), MLmodel.build_generator()
         discriminator_A, discriminator_B = MLmodel.build_discriminator(), MLmodel.build_discriminator()

@@ -18,7 +18,6 @@ import tensorflow as tf
 #from keras.preprocessing.image import img_to_array, load_img
 from keras.utils import img_to_array, load_img
 
-
 def preprocess_image(image, target_size=(256, 256), normalize=True):
     """
     Preprocess an image by resizing and optionally normalizing it.
