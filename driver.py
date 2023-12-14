@@ -13,8 +13,7 @@ import tensorflow as tf
 import image_processing as ip
 import data_handling as dh
 import MLmodel
-import numpy as np
-
+import os
 
 def main():
     epochs = 10

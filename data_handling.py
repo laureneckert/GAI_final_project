@@ -11,7 +11,6 @@ Model: CycleGAN
 """
 # data_handling.py
 
-import tensorflow_datasets as tfds
 import tensorflow as tf
 from keras.utils import plot_model
 from keras.preprocessing.image import ImageDataGenerator
