@@ -10,6 +10,8 @@ Environment set up:
 - tensorflow
 - keras
 - numpy
+- opencv
+- os
 -----------------------------------------------------------------------------
 Directory:
 
@@ -106,18 +108,80 @@ Program Flow:
         After the styled image is saved or displayed, the program concludes its execution.
 
 -----------------------------------------------------------------
+
+Training notes:
+
+T0:
+
+    # Optimizers with reduced learning rate
+    gen_optimizer = Adam(learning_rate=0.0001, beta_1=0.5)
+    disc_optimizer = Adam(learning_rate=0.0001, beta_1=0.5)
+
+Epoch 1/10
+        Step 1/100 - Time: 14.41s
+                Generator A to B Loss: 3.0667
+                Generator B to A Loss: 3.5346
+                Discriminator A Loss: 1.6055
+                Discriminator B Loss: 1.8901
+        Step 11/100 - Time: 14.21s
+                Generator A to B Loss: 3.2110
+                Generator B to A Loss: 3.3221
+                Discriminator A Loss: 1.7345
+                Discriminator B Loss: 1.6976
+        Step 21/100 - Time: 14.48s
+                Generator A to B Loss: nan
+                Generator B to A Loss: nan
+                Discriminator A Loss: nan
+                Discriminator B Loss: nan
+
+gradient descent or something is getting out of control but why? doesn't resnet fix that?
+
+T1:
+
+PS C:\Users\laure> & C:/Users/laure/anaconda3/envs/tf_env_3/python.exe "c:/Users/laure/Dropbox/School/BSE/Coursework/23 Fall/GenerativeAI/code for projects/GAIfinalproject/GAI_final_project/driver.py"
+Found 5000 images belonging to 1 classes.
+Found 4319 images belonging to 1 classes.
+2023-12-13 21:23:39.251463: I tensorflow/core/platform/cpu_feature_guard.cc:142] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN)to use the following CPU instructions in performance-critical operations:  AVX AVX2
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2023-12-13 21:23:39.252027: I tensorflow/core/common_runtime/process_util.cc:146] Creating new thread pool with default inter op setting: 2. Tune using inter_op_parallelism_threads for best performance.
+Epoch 1/10
+        Step 1/100 - Time: 14.40s
+                Generator A to B Loss: 2.7686
+                Generator B to A Loss: 2.6413
+                Discriminator A Loss: 1.5854
+                Discriminator B Loss: 1.5238
+        Step 11/100 - Time: 14.13s
+                Generator A to B Loss: nan
+                Generator B to A Loss: nan
+                Discriminator A Loss: nan
+                Discriminator B Loss: nan
+        Step 21/100 - Time: 15.80s
+                Generator A to B Loss: nan
+                Generator B to A Loss: nan
+                Discriminator A Loss: nan
+                Discriminator B Loss: nan
+        Step 31/100 - Time: 14.16s
+                Generator A to B Loss: nan
+                Generator B to A Loss: nan
+                Discriminator A Loss: nan
+                Discriminator B Loss: nan
+        Step 41/100 - Time: 14.17s
+                Generator A to B Loss: nan
+                Generator B to A Loss: nan
+                Discriminator A Loss: nan
+                Discriminator B Loss: nan
+        Step 51/100 - Time: 14.17s
+                Generator A to B Loss: nan
+                Generator B to A Loss: nan
+                Discriminator A Loss: nan
+                Discriminator B Loss: nan
+        Step 61/100 - Time: 14.12s
+                Generator A to B Loss: nan
+                Generator B to A Loss: nan
+                Discriminator A Loss: nan
+                Discriminator B Loss: nan
+
+
+-----------------------------------------------------------------------------
 TO DO:
-- load imagenet database
-- figure out how to select for art genre
-- saving/loading discriminators
-
-
-    Error Handling and Logging:
-        Consider adding more error handling and logging throughout the code, especially in critical sections like model loading, dataset processing, and during the training loop.
-
-    Testing and Debugging:
-        After addressing these points, thoroughly test each component of your program to ensure that it functions correctly, both in training and inference modes.
-
-    Documentation and Comments:
-    Add comments and documentation within your code for clarity, especially for complex sections like the model-building and training parts.
 
