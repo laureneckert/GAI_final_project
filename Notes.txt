@@ -15,97 +15,12 @@ Environment set up:
 -----------------------------------------------------------------------------
 Directory:
 
-1. driver.py - The Main Script
-
-This is the primary script that a user interacts with. It orchestrates the overall process, from loading the model to applying style transfer.
-
-    main() Function:
-        Manages the flow of the program.
-        Handles the decision to either train a new model or load an existing one.
-        Interacts with the user to get the path of the photograph for style transfer.
-        Calls functions to apply the art style and display or save the output.
-
-2. driverFunctions.py - Utility Functions for Data Handling and Processing
-
-This file contains functions for image processing and handling user interactions.
-
-    load_and_preprocess_image(image_path, target_size):
-        Loads and preprocesses an image from a given path.
-        Resizes the image to the target size and normalizes it.
-
-    postprocess_image(image_tensor):
-        Converts the output tensor from the model back into a standard image format.
-        Rescales the pixel values and prepares the image for saving or displaying.
-
-    apply_art_style(image_path, generator):
-        Uses the provided generator model to apply an art style to an input image.
-        Calls load_and_preprocess_image and postprocess_image for handling the image transformations.
-
-    save_or_display_image(image, save, display, save_path):
-        Saves or displays the styled image based on user preference.
-        Handles file saving and image displaying functionalities.
-
-3. MLmodel.py - Model Definitions and Training Logic
-
-This file is the core of your machine learning model, containing the architecture of the CycleGAN and its training logic.
-
-    build_generator():
-        Defines and returns the architecture of the generator model.
-        Utilizes a ResNet-based architecture for effective image translation.
-
-    build_discriminator():
-        Defines and returns the architecture of the discriminator model.
-        Based on the PatchGAN design, suitable for distinguishing real and fake images at a patch level.
-
-    compile_models(generator, discriminator, lr, beta_1):
-        Compiles the generator and discriminator models with the specified optimizer and loss functions.
-
-    train_model(art_images, photo_images, generator_AtoB, generator_BtoA, discriminator_A, discriminator_B, epochs, batch_size):
-        Implements the training logic for the CycleGAN.
-        Handles the training process over specified epochs and batch sizes, including forward and backward cycles, loss calculations, and weight updates.
-
-    save_model(model, model_name, save_dir):
-        Saves a trained model to a specified directory.
-
-    load_model(model_name, model_dir):
-        Loads a model from a specified directory.
+a lot hAS CHANGED HERE
 
 -------------------------------------------------------------------
 Program Flow:
 
-    Starting the Program (driver.py):
-        The user initiates the program by running driver.py. This triggers the main() function.
-
-    Decision on Model Training or Loading:
-        Inside main(), the program decides whether to train a new model or load a pre-trained model based on user input or predefined settings.
-            If training a new model, it proceeds to load and preprocess datasets.
-            If loading a pre-trained model, it skips to the style transfer step.
-
-    Loading and Preprocessing Datasets (Training Scenario):
-        If training is chosen, the load_datasets() function from driverFunctions.py is called to load and preprocess the ArtBench-10 and ImageNet datasets.
-
-    Building and Compiling the Models:
-        Still in the training scenario, the program calls build_generator() and build_discriminator() from MLmodel.py to create the CycleGAN models (two generators and two discriminators).
-        These models are then compiled with appropriate loss functions and optimizers using compile_models() in MLmodel.py.
-
-    Training the Models:
-        The train_model() function in MLmodel.py is invoked to train the models. This function manages the entire training process, including forward and backward cycles, loss calculations, and updating the model weights.
-        Upon completion of training, the trained generator model is saved using save_model() in MLmodel.py.
-
-    Loading the Pre-trained Model (Inference Scenario):
-        If the user opts to use a pre-trained model or if the training phase is complete, the program loads the generator model using load_model() in MLmodel.py.
-
-    User Input for Style Transfer:
-        The program then prompts the user (via driver.py) to input the path of a personal photograph for style transfer.
-
-    Applying the Art Style:
-        The apply_art_style() function in driverFunctions.py is called with the user's photograph and the loaded generator model. This function handles loading the image, preprocessing it, applying the style transfer, and then postprocessing the result.
-
-    Saving or Displaying the Output:
-        The transformed image is then either saved, displayed, or both, using the save_or_display_image() function in driverFunctions.py based on the user's preference or predefined settings.
-
-    End of Program Execution:
-        After the styled image is saved or displayed, the program concludes its execution.
+????
 
 -----------------------------------------------------------------
 
