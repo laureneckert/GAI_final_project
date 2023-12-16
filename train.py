@@ -1,66 +1,71 @@
 #train.py
-#code from GAN cookbook CH 6
+#code from GAN cookbook CH 6 plus my own edits
 
 from gan import GAN
 from generator import Generator
 from discriminator import Discriminator
 from keras.layers import Input
-from keras.datasets import mnist
-from random import randint
 import numpy as np
-import matplotlib.pyplot as plt
-from copy import deepcopy
 import os
 from PIL import Image
 import random
-import numpy as np
-
+import matplotlib.pyplot as plt
 
 class Trainer:
-    def __init__(self, height, width, channels, epochs, batch, checkpoint,
-                 train_data_path_A, train_data_path_B, test_data_path_A, test_data_path_B):
+    def __init__(self, height, width, channels, epochs, batch, checkpoint, train_data_path_A, train_data_path_B):
         self.EPOCHS = epochs
         self.BATCH = batch
         self.H = height
         self.W = width
         self.C = channels
         self.CHECKPOINT = checkpoint
-
-        # Load data for both domains
+        
+        # Store paths as attributes
+        self.train_data_path_A = train_data_path_A
+        self.train_data_path_B = train_data_path_B
+        
+        # Define inputs
+        self.orig_A = Input(shape=(self.W, self.H, self.C))
+        self.orig_B = Input(shape=(self.W, self.H, self.C))
+        
+        # Initialize batch generators for training data
         self.train_generator_A = self.load_data(train_data_path_A)
         self.train_generator_B = self.load_data(train_data_path_B)
-        self.test_generator_A = self.load_data(test_data_path_A)
-        self.test_generator_B = self.load_data(test_data_path_B)
 
-        # Initialize the rest of your models here
+        # Initialize models
         self.generator = Generator(height=self.H, width=self.W, channels=self.C)
+        self.fake_A = self.generator.Generator(self.orig_B)
         self.discriminator = Discriminator(height=self.H, width=self.W, channels=self.C)
-
         self.discriminator.trainable = False
-        self.valid = self.discriminator.Discriminator([self.fake_A,self.orig_B])
+        self.valid = self.discriminator.Discriminator([self.fake_A, self.orig_B])
 
-        model_inputs  = [self.orig_A,self.orig_B]
+        model_inputs = [self.orig_A, self.orig_B]
         model_outputs = [self.valid, self.fake_A]
-        self.gan = GAN(model_inputs=model_inputs,model_outputs=model_outputs)
-        
-    def load_data(self, data_path):
-        list_of_files = self.grabListOfFiles(data_path, extension="jpg")
-        batch_size = 100  # Adjust this based on your system's capability
+        self.gan = GAN(model_inputs=model_inputs, model_outputs=model_outputs)
 
+    def load_data(self, data_path):
+        return self.create_data_generator(data_path)
+
+    def create_data_generator(self, data_path):
+        list_of_files = self.grabListOfFiles(data_path, extension="jpg")
         def image_batch_generator():
-            for i in range(0, len(list_of_files), batch_size):
-                batch_files = list_of_files[i:i + batch_size]
+            i = 0
+            while True:
+                if i + self.BATCH >= len(list_of_files):
+                    i = 0  # Reset for the next epoch
+                batch_files = list_of_files[i:i + self.BATCH]
                 batch_images = []
                 for file_path in batch_files:
                     try:
                         image = Image.open(file_path).convert('RGB')
-                        image = image.resize((self.W, self.H))  # Resize image
+                        image = image.resize((self.W, self.H))
                         image_array = np.asarray(image, dtype=np.float32)
-                        image_array = (image_array - 127.5) / 127.5  # Normalize image
+                        image_array = (image_array - 127.5) / 127.5
                         batch_images.append(image_array)
                     except Exception as e:
                         print(f"Error processing file {file_path}: {e}")
-                yield np.array(batch_images)  # Yields a batch of normalized images
+                yield np.array(batch_images)
+                i += self.BATCH
 
         return image_batch_generator()
 
@@ -92,69 +97,96 @@ class Trainer:
         return imageArr
 
     def train(self):
-            print("Starting training process")
+        print("Starting training process")
 
-            # Initialize batch generators
-            self.train_generator_A = self.load_data(self.train_data_path_A)
-            self.train_generator_B = self.load_data(self.train_data_path_B)
+        for epoch in range(self.EPOCHS):
+            print(f"Epoch {epoch+1}/{self.EPOCHS}")
 
-            for epoch in range(self.EPOCHS):
-                print(f"Epoch {epoch+1}/{self.EPOCHS}")
+            # Initialize generators
+            gen_A = self.train_generator_A
+            gen_B = self.train_generator_B
 
-                # Iterate over the batch generators
-                for batch_index, (batch_A, batch_B) in enumerate(zip(self.train_generator_A, self.train_generator_B)):
-                    print(f"\nProcessing batch {batch_index + 1} of epoch {epoch + 1}")
+            batch_index = 0
+            while True:
+                try:
+                    batch_A = next(gen_A)
+                    batch_B = next(gen_B)
+                except StopIteration:
+                    break  # Break the loop if any of the generators is exhausted
 
-                    # PatchGAN target labels for real and fake images
-                    y_valid = np.ones((batch_A.shape[0],) + (int(self.W / 2**4), int(self.W / 2**4), 1))
-                    y_fake = np.zeros((batch_B.shape[0],) + (int(self.W / 2**4), int(self.W / 2**4), 1))
+                print(f"\nProcessing batch {batch_index + 1} of epoch {epoch + 1}")
 
-                    # Generate a batch of new images (fake images)
-                    fake_A = self.generator.Generator.predict(batch_B)
+                # PatchGAN target labels for real and fake images
+                y_valid = np.ones((batch_A.shape[0],) + (int(self.W / 2**4), int(self.W / 2**4), 1))
+                y_fake = np.zeros((batch_B.shape[0],) + (int(self.W / 2**4), int(self.W / 2**4), 1))
 
-                    # Train the discriminator (real classified as ones and generated as zeros)
-                    discriminator_loss_real = self.discriminator.Discriminator.train_on_batch([batch_A, batch_B], y_valid)[0]
-                    discriminator_loss_fake = self.discriminator.Discriminator.train_on_batch([fake_A, batch_B], y_fake)[0]
-                    full_loss = 0.5 * np.add(discriminator_loss_real, discriminator_loss_fake)
+                # Generate a batch of new images (fake images)
+                fake_A = self.generator.Generator.predict(batch_B)
 
-                    # Train the generator
-                    generator_loss = self.gan.gan_model.train_on_batch([batch_A, batch_B], [y_valid, batch_A])
+                # Train the discriminator (real classified as ones and generated as zeros)
+                discriminator_loss_real = self.discriminator.Discriminator.train_on_batch([batch_A, batch_B], y_valid)[0]
+                discriminator_loss_fake = self.discriminator.Discriminator.train_on_batch([fake_A, batch_B], y_fake)[0]
+                full_loss = 0.5 * np.add(discriminator_loss_real, discriminator_loss_fake)
 
-                    print(f'Batch {batch_index+1}: [Discriminator Loss: {full_loss}], [Generator Loss: {generator_loss}]')
+                # Train the generator
+                generator_loss = self.gan.gan_model.train_on_batch([batch_A, batch_B], [y_valid, batch_A])
 
-                    if batch_index % self.CHECKPOINT == 0:
-                        label = f"{epoch}_{batch_index}"
-                        print(f"Checkpoint reached: Saving models and generating plot for epoch {epoch + 1}, batch {batch_index + 1}")
-                        self.plot_checkpoint(label)
+                print(f'Batch {batch_index+1}: [Discriminator Loss: {full_loss}], [Generator Loss: {generator_loss}]')
 
-                print(f'Epoch {epoch+1} completed: [Discriminator Loss: {full_loss}], [Generator Loss: {generator_loss}]')
+                if batch_index % self.CHECKPOINT == 0:
+                    label = f"{epoch}_{batch_index}"
+                    print(f"Checkpoint reached: Saving models and generating plot for epoch {epoch + 1}, batch {batch_index + 1}")
+                    self.plot_checkpoint(label)
 
-            print("Training completed")
+                batch_index += 1  # Increment batch index
 
-    def plot_checkpoint(self,b):
-        orig_filename = "/out/batch_check_"+str(b)+"_original.png"
+            print(f'Epoch {epoch+1} completed: [Discriminator Loss: {full_loss}], [Generator Loss: {generator_loss}]')
 
-        r, c = 3, 3
-        random_inds = random.sample(range(len(self.X_test_A)),3)
-        imgs_A = self.X_test_A[random_inds].reshape(3, self.W, self.H, self.C )
-        imgs_B = self.X_test_B[random_inds].reshape( 3, self.W, self.H, self.C )
-        fake_A = self.generator.Generator.predict(imgs_B)
+        print("Training completed")
 
-        gen_imgs = np.concatenate([imgs_B, fake_A, imgs_A])
+    def plot_checkpoint(self, b):
+            # Ensuring the 'out' directory exists
+            output_dir = 'out'
+            if not os.path.exists(output_dir):
+                os.makedirs(output_dir)
 
-        # Rescale images 0 - 1
-        gen_imgs = 0.5 * gen_imgs + 0.5
+            gen_A = self.train_generator_A
+            gen_B = self.train_generator_B
 
-        titles = ['Style', 'Generated', 'Original']
-        fig, axs = plt.subplots(r, c)
-        cnt = 0
-        for i in range(r):
-            for j in range(c):
-                axs[i,j].imshow(gen_imgs[cnt])
-                axs[i, j].set_title(titles[i])
-                axs[i,j].axis('off')
-                cnt += 1
-        fig.savefig("/out/batch_check_"+str(b)+".png")
-        plt.close('all')
+            # Fetching one batch of images from each generator
+            try:
+                imgs_A = next(gen_A)
+                imgs_B = next(gen_B)
+            except StopIteration:
+                # Handle the case if the generator is exhausted
+                print("Generators exhausted. Unable to plot images.")
+                return
 
-        return
+            # Generate fake images
+            fake_A = self.generator.Generator.predict(imgs_B)
+
+            gen_imgs = np.concatenate([imgs_B, fake_A, imgs_A])
+
+            # Rescale images 0 - 1
+            gen_imgs = 0.5 * gen_imgs + 0.5
+
+            r, c = 3, 3
+            titles = ['Style', 'Generated', 'Original']  # Define titles here
+            fig, axs = plt.subplots(r, c)
+            cnt = 0
+            for i in range(r):
+                for j in range(c):
+                    if cnt < len(gen_imgs):  # Check to avoid going out of bounds
+                        axs[i, j].imshow(gen_imgs[cnt])
+                        axs[i, j].set_title(titles[i % len(titles)])  # To cycle through titles
+                        axs[i, j].axis('off')
+                        cnt += 1
+                    else:
+                        break  # Break the inner loop if we've processed all images
+
+            # Save the figure
+            output_file = os.path.join(output_dir, f"batch_check_{b}.png")
+            fig.savefig(output_file)
+            plt.close('all')
+
+            return output_file

@@ -93,7 +93,7 @@ class Generator(object):
 
     def save_model(self):
         try:
-            plot_model(self.Generator, to_file=r'C:\Users\laure\Dropbox\School\BSE\Coursework\23 Fall\GenerativeAI\code for projects\GAIfinalproject\GAI_final_project"\\out\\Generator_Model.png')
+            plot_model(self.Generator, to_file=r'C:\Users\laure\Dropbox\School\BSE\Coursework\23 Fall\GenerativeAI\code for projects\GAIfinalproject\GAI_final_project\out\Generator_Model.png')
         except Exception as e:
             print(f"An error occurred while saving the model diagram: {e}")
 
