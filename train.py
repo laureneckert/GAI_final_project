@@ -51,9 +51,11 @@ class Trainer:
         def image_batch_generator():
             i = 0
             while True:
-                if i + self.BATCH >= len(list_of_files):
-                    i = 0  # Reset for the next epoch
                 batch_files = list_of_files[i:i + self.BATCH]
+                if len(batch_files) < self.BATCH:
+                    # Not enough images to form a batch, reset index to start
+                    i = 0
+                    continue
                 batch_images = []
                 for file_path in batch_files:
                     try:
@@ -65,9 +67,10 @@ class Trainer:
                     except Exception as e:
                         print(f"Error processing file {file_path}: {e}")
                 yield np.array(batch_images)
-                i += self.BATCH
+                i = (i + self.BATCH) % len(list_of_files)  # Move index, reset if end of list reached
 
-        return image_batch_generator()
+        return image_batch_generator
+
 
     def grabListOfFiles(self, startingDirectory, extension=".jpg"):
         listOfFiles = []
@@ -103,43 +106,76 @@ class Trainer:
             print(f"Epoch {epoch+1}/{self.EPOCHS}")
 
             # Initialize generators
-            gen_A = self.train_generator_A
-            gen_B = self.train_generator_B
+            self.gen_A = self.train_generator_A()
+            self.gen_B = self.train_generator_B()
 
             batch_index = 0
             while True:
                 try:
-                    batch_A = next(gen_A)
-                    batch_B = next(gen_B)
+                    batch_A = next(self.gen_A)
+                    batch_B = next(self.gen_B)
                 except StopIteration:
+                    # Reset the generators if exhausted and break the loop
+                    self.gen_A = self.train_generator_A()
+                    self.gen_B = self.train_generator_B()
                     break  # Break the loop if any of the generators is exhausted
 
                 print(f"\nProcessing batch {batch_index + 1} of epoch {epoch + 1}")
+                
+                # Debugging: Check shapes and sample values
+                print(f"Shape of batch_A: {batch_A.shape}")
+                print(f"Sample value from batch_A: {batch_A[0,0,0,:]}")  # Print a small sample
+                print(f"Shape of batch_B: {batch_B.shape}")
+                print(f"Sample value from batch_B: {batch_B[0,0,0,:]}")  # Print a small sample
 
                 # PatchGAN target labels for real and fake images
                 y_valid = np.ones((batch_A.shape[0],) + (int(self.W / 2**4), int(self.W / 2**4), 1))
                 y_fake = np.zeros((batch_B.shape[0],) + (int(self.W / 2**4), int(self.W / 2**4), 1))
+                print("Log 1")
 
                 # Generate a batch of new images (fake images)
                 fake_A = self.generator.Generator.predict(batch_B)
+                print("Log 2")
+
+                # Debugging: Check fake_A
+                print(f"Shape of fake_A: {fake_A.shape}")
+                print(f"Sample value from fake_A: {fake_A[0,0,0,:]}")  # Print a small sample
 
                 # Train the discriminator (real classified as ones and generated as zeros)
-                discriminator_loss_real = self.discriminator.Discriminator.train_on_batch([batch_A, batch_B], y_valid)[0]
-                discriminator_loss_fake = self.discriminator.Discriminator.train_on_batch([fake_A, batch_B], y_fake)[0]
+                print("Training discriminator with real data...")
+                try:
+                    discriminator_loss_real = self.discriminator.Discriminator.train_on_batch([batch_A, batch_B], y_valid)[0]
+                    print("Log 3 - Discriminator real")
+                except Exception as e:
+                    print(f"Error during discriminator training with real data: {e}")
+                
+                # Train discriminator with fake data
+                print("Training discriminator with fake data...")
+                try:
+                    discriminator_loss_fake = self.discriminator.Discriminator.train_on_batch([fake_A, batch_B], y_fake)[0]
+                    print("Log 4 - Discriminator fake")
+                except Exception as e:
+                    print(f"Error during discriminator training with fake data: {e}")
                 full_loss = 0.5 * np.add(discriminator_loss_real, discriminator_loss_fake)
+
 
                 # Train the generator
                 generator_loss = self.gan.gan_model.train_on_batch([batch_A, batch_B], [y_valid, batch_A])
+                print("Log 5 - Generator")
 
                 print(f'Batch {batch_index+1}: [Discriminator Loss: {full_loss}], [Generator Loss: {generator_loss}]')
 
                 if batch_index % self.CHECKPOINT == 0:
-                    label = f"{epoch}_{batch_index}"
-                    print(f"Checkpoint reached: Saving models and generating plot for epoch {epoch + 1}, batch {batch_index + 1}")
-                    self.plot_checkpoint(label)
+                    print("Checkpoint reached. Checkpoint saving skipped.")
+                    #label = f"{epoch}_{batch_index}"
+                    #print(f"Checkpoint reached: Saving models and generating plot for epoch {epoch + 1}, batch {batch_index + 1}")
+                    #self.plot_checkpoint(label)
 
                 batch_index += 1  # Increment batch index
-
+                
+                # Optionally reset the generators at the end of each epoch
+                self.gen_A = self.train_generator_A()
+                self.gen_B = self.train_generator_B()
             print(f'Epoch {epoch+1} completed: [Discriminator Loss: {full_loss}], [Generator Loss: {generator_loss}]')
 
         print("Training completed")
@@ -150,13 +186,10 @@ class Trainer:
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
 
-            gen_A = self.train_generator_A
-            gen_B = self.train_generator_B
-
             # Fetching one batch of images from each generator
             try:
-                imgs_A = next(gen_A)
-                imgs_B = next(gen_B)
+                imgs_A = next(self.gen_A)
+                imgs_B = next(self.gen_B)
             except StopIteration:
                 # Handle the case if the generator is exhausted
                 print("Generators exhausted. Unable to plot images.")
