@@ -8,7 +8,6 @@ from keras.layers import Input
 import numpy as np
 import os
 from PIL import Image
-import random
 import matplotlib.pyplot as plt
 
 class Trainer:
@@ -70,7 +69,6 @@ class Trainer:
                 i = (i + self.BATCH) % len(list_of_files)  # Move index, reset if end of list reached
 
         return image_batch_generator
-
 
     def grabListOfFiles(self, startingDirectory, extension=".jpg"):
         listOfFiles = []

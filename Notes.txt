@@ -3,15 +3,8 @@ Team Members:
 Jaric Abadinas
 Lauren Eckert
 
-Topic: Use transfer learning to apply an artistic genre style to a personal photograph. The overall model will be CycleGAN, with the generator being ResNet and the discriminator being PatchGAN. We want to use Impressionist-landscapes-paintings from Robgonsalves art genre style dataset and Landscape Pictures from Arnaud Rougetet on Kaggle for the landscape photography dataset.
+Topic: Use transfer learning to apply an artistic genre style to a personal photograph. The overall model will be CycleGAN, with the generator and discriminator code provided from the GAN Cookbook CycleGAN tutorial. We want to use Impressionist-landscapes-paintings from Robgonsalves art genre style dataset and Landscape Pictures from Arnaud Rougetet on Kaggle for the landscape photography dataset. Both will be downloaded locally and loaded up in batches to preserve memory space.
 
-Environment set up:
-- matplotlib
-- tensorflow
-- keras
-- numpy
-- opencv
-- os
 -----------------------------------------------------------------------------
 Directory:
 
@@ -96,7 +89,200 @@ Epoch 1/10
                 Discriminator A Loss: nan
                 Discriminator B Loss: nan
 
+T2:
+
+okay we overhauled the model and used some code from GAN Cookbook so here is the terminal output now:
+
+batch > 1
+
+==================================================================================================
+Total params: 44,614,724
+Trainable params: 44,604,100
+Non-trainable params: 10,624
+__________________________________________________________________________________________________
+Starting training process
+Epoch 1/10
+
+Processing batch 1 of epoch 1
+Shape of batch_A: (10, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (10, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+Shape of fake_A: (10, 256, 256, 3)
+Sample value from fake_A: [-0.02410066  0.03852579 -0.0046167 ]
+Training discriminator with real data...
+
+then it get stuck there forever even for batch = 2, which should be manageable
+
+batch = 1
+==================================================================================================
+Total params: 44,614,724
+Trainable params: 44,604,100
+Non-trainable params: 10,624
+__________________________________________________________________________________________________
+Starting training process
+Epoch 1/10
+
+Processing batch 1 of epoch 1
+Shape of batch_A: (1, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (1, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+Shape of fake_A: (1, 256, 256, 3)
+Sample value from fake_A: [0.02611968 0.00967421 0.00206762]
+Training discriminator with real data...
+Log 3 - Discriminator real
+Training discriminator with fake data...
+Log 4 - Discriminator fake
+Log 5 - Generator
+Batch 1: [Discriminator Loss: nan], [Generator Loss: [nan, nan, 0.6247756481170654]]
+Checkpoint reached. Checkpoint saving skipped.
+
+Processing batch 2 of epoch 1
+Shape of batch_A: (1, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (1, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+Shape of fake_A: (1, 256, 256, 3)
+Sample value from fake_A: [-1. -1. -1.]
+Training discriminator with real data...
+Log 3 - Discriminator real
+Training discriminator with fake data...
+Log 4 - Discriminator fake
+Log 5 - Generator
+Batch 2: [Discriminator Loss: nan], [Generator Loss: [nan, nan, 1.1008976697921753]]
+
+Processing batch 3 of epoch 1
+Shape of batch_A: (1, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (1, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+Shape of fake_A: (1, 256, 256, 3)
+Sample value from fake_A: [-1. -1. -1.]
+Training discriminator with real data...
+Log 3 - Discriminator real
+Training discriminator with fake data...
+Log 4 - Discriminator fake
+Log 5 - Generator
+Batch 3: [Discriminator Loss: nan], [Generator Loss: [nan, nan, 1.1008976697921753]]
+
+Processing batch 4 of epoch 1
+Shape of batch_A: (1, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (1, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+Shape of fake_A: (1, 256, 256, 3)
+Sample value from fake_A: [-1. -1. -1.]
+Training discriminator with real data...
+Log 3 - Discriminator real
+Training discriminator with fake data...
+Log 4 - Discriminator fake
+Log 5 - Generator
+Batch 4: [Discriminator Loss: nan], [Generator Loss: [nan, nan, 1.1008976697921753]]
+
+Processing batch 5 of epoch 1
+Shape of batch_A: (1, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (1, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+Shape of fake_A: (1, 256, 256, 3)
+Sample value from fake_A: [-1. -1. -1.]
+Training discriminator with real data...
+Log 3 - Discriminator real
+Training discriminator with fake data...
+Log 4 - Discriminator fake
+Log 5 - Generator
+Batch 5: [Discriminator Loss: nan], [Generator Loss: [nan, nan, 1.1008976697921753]]
+
+Processing batch 6 of epoch 1
+Shape of batch_A: (1, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (1, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+Shape of fake_A: (1, 256, 256, 3)
+Sample value from fake_A: [-1. -1. -1.]
+Training discriminator with real data...
+Log 3 - Discriminator real
+Training discriminator with fake data...
+Log 4 - Discriminator fake
+Log 5 - Generator
+Batch 6: [Discriminator Loss: nan], [Generator Loss: [nan, nan, 1.1008976697921753]]
+
+Processing batch 7 of epoch 1
+Shape of batch_A: (1, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (1, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+Shape of fake_A: (1, 256, 256, 3)
+Sample value from fake_A: [-1. -1. -1.]
+Training discriminator with real data...
+Log 3 - Discriminator real
+Training discriminator with fake data...
+Log 4 - Discriminator fake
+Log 5 - Generator
+Batch 7: [Discriminator Loss: nan], [Generator Loss: [nan, nan, 1.1008976697921753]]
+
+Processing batch 8 of epoch 1
+Shape of batch_A: (1, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (1, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+Shape of fake_A: (1, 256, 256, 3)
+Sample value from fake_A: [-1. -1. -1.]
+Training discriminator with real data...
+Log 3 - Discriminator real
+Training discriminator with fake data...
+Log 4 - Discriminator fake
+Log 5 - Generator
+Batch 8: [Discriminator Loss: nan], [Generator Loss: [nan, nan, 1.1008976697921753]]
+
+Processing batch 9 of epoch 1
+Shape of batch_A: (1, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (1, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+Shape of fake_A: (1, 256, 256, 3)
+Sample value from fake_A: [-1. -1. -1.]
+Training discriminator with real data...
+Log 3 - Discriminator real
+Training discriminator with fake data...
+Log 4 - Discriminator fake
+Log 5 - Generator
+Batch 9: [Discriminator Loss: nan], [Generator Loss: [nan, nan, 1.1008976697921753]]
+
+Processing batch 10 of epoch 1
+Shape of batch_A: (1, 256, 256, 3)
+Sample value from batch_A: [0.4745098  0.49019608 0.49803922]
+Shape of batch_B: (1, 256, 256, 3)
+Sample value from batch_B: [-0.04313726  0.1764706  -0.00392157]
+Log 1
+Log 2
+
+....and so on. obvi not useful beccause of the NAN loss values
 
 -----------------------------------------------------------------------------
 TO DO:
 
+figure out this fucking disaster :((((((
+
+why wont the discriminator work!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! the generator is working fine I THINK

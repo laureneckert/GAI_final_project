@@ -1,15 +1,12 @@
 #generator.py
 #code from GAN cookbook CH 6
 
-import sys
-import numpy as np
+
 from keras.layers import Dense, Reshape, Input, BatchNormalization, Concatenate
-from keras.layers.core import Activation
 from keras.layers.convolutional import UpSampling2D, Convolution2D, MaxPooling2D,Deconvolution2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.models import Sequential, Model
-from keras.optimizers import Adam, SGD, Nadam,Adamax
-from keras import initializers
+from keras.optimizers import Adam
 from keras.utils import plot_model
 
 class Generator(object):

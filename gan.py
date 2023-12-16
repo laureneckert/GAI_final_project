@@ -1,10 +1,7 @@
 #GAN.py
 #code from GAN cookbook CH 6
 
-import sys
-import numpy as np
-from keras.models import Sequential, Model
-from keras.layers import Input
+from keras.models import Model
 from keras.optimizers import Adam, SGD
 from keras.utils import plot_model
 
