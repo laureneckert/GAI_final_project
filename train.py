@@ -5,219 +5,209 @@ from gan import GAN
 from generator import Generator
 from discriminator import Discriminator
 from keras.layers import Input
+from keras.datasets import mnist
+from random import randint
 import numpy as np
+import matplotlib.pyplot as plt
+from copy import deepcopy
 import os
 from PIL import Image
-import matplotlib.pyplot as plt
+import numpy as np
 
 class Trainer:
-    def __init__(self, height, width, channels, epochs, batch, checkpoint, train_data_path_A, train_data_path_B):
+    def __init__(self, height = 64, width = 64, epochs = 50000, batch = 32, checkpoint = 50, train_data_path_A = '',train_data_path_B =   '',test_data_path_A='',test_data_path_B=''):
+        #instantiating input variables
         self.EPOCHS = epochs
         self.BATCH = batch
-        self.H = height
-        self.W = width
-        self.C = channels
+        self.RESIZE_HEIGHT = height
+        self.RESIZE_WIDTH = width
         self.CHECKPOINT = checkpoint
         
-        # Store paths as attributes
-        self.train_data_path_A = train_data_path_A
-        self.train_data_path_B = train_data_path_B
-        
-        # Define inputs
-        self.orig_A = Input(shape=(self.W, self.H, self.C))
-        self.orig_B = Input(shape=(self.W, self.H, self.C))
-        
-        # Initialize batch generators for training data
-        self.train_generator_A = self.load_data(train_data_path_A)
-        self.train_generator_B = self.load_data(train_data_path_B)
+        #loading data into respective class variables
+        self.X_train_A, self.H_A, self.W_A, self.C_A = self.load_data(train_data_path_A)
+        self.X_train_B, self.H_B, self.W_B, self.C_B = self.load_data(train_data_path_B)
+        self.X_test_A, self.H_A_test, self.W_A_test, self.C_A_test = self.load_data(test_data_path_A)
+        self.X_test_B, self.H_B_test, self.W_B_test, self.C_B_test = self.load_data(test_data_path_B)
 
-        # Initialize models
-        self.generator = Generator(height=self.H, width=self.W, channels=self.C)
-        self.fake_A = self.generator.Generator(self.orig_B)
-        self.discriminator = Discriminator(height=self.H, width=self.W, channels=self.C)
-        self.discriminator.trainable = False
-        self.valid = self.discriminator.Discriminator([self.fake_A, self.orig_B])
+        #generators
+        self.generator_A_to_B = Generator(height=self.H_A, width=self.W_A, channels=self.C_A)
+        self.generator_B_to_A = Generator(height=self.H_B, width=self.W_B, channels=self.C_B)
 
-        model_inputs = [self.orig_A, self.orig_B]
-        model_outputs = [self.valid, self.fake_A]
-        self.gan = GAN(model_inputs=model_inputs, model_outputs=model_outputs)
+        self.orig_A = Input(shape=(self.W_A, self.H_A, self.C_A))
+        self.orig_B = Input(shape=(self.W_B, self.H_B, self.C_B))
 
-    def load_data(self, data_path):
-        return self.create_data_generator(data_path)
+        self.fake_B = self.generator_A_to_B.Generator(self.orig_A)
+        self.fake_A = self.generator_B_to_A.Generator(self.orig_B)
+        self.reconstructed_A = self.generator_B_to_A.Generator(self.fake_B)
+        self.reconstructed_B = self.generator_A_to_B.Generator(self.fake_A)
+        self.id_A = self.generator_B_to_A.Generator(self.orig_A)
+        self.id_B = self.generator_A_to_B.Generator(self.orig_B)
 
-    def create_data_generator(self, data_path):
-        list_of_files = self.grabListOfFiles(data_path, extension="jpg")
-        def image_batch_generator():
-            i = 0
-            while True:
-                batch_files = list_of_files[i:i + self.BATCH]
-                if len(batch_files) < self.BATCH:
-                    # Not enough images to form a batch, reset index to start
-                    i = 0
-                    continue
-                batch_images = []
-                for file_path in batch_files:
-                    try:
-                        image = Image.open(file_path).convert('RGB')
-                        image = image.resize((self.W, self.H))
-                        image_array = np.asarray(image, dtype=np.float32)
-                        image_array = (image_array - 127.5) / 127.5
-                        batch_images.append(image_array)
-                    except Exception as e:
-                        print(f"Error processing file {file_path}: {e}")
-                yield np.array(batch_images)
-                i = (i + self.BATCH) % len(list_of_files)  # Move index, reset if end of list reached
+        #discriminators
+        self.discriminator_A = Discriminator(height=self.H_A, width=self.W_A, channels=self.C_A)
+        self.discriminator_B = Discriminator(height=self.H_B, width=self.W_B, channels=self.C_B)
+        self.discriminator_A.trainable = False
+        self.discriminator_B.trainable = False
+        self.valid_A = self.discriminator_A.Discriminator(self.fake_A)
+        self.valid_B = self.discriminator_B.Discriminator(self.fake_B)
 
-        return image_batch_generator
+        #passing models onto the GAN
+        model_inputs  = [self.orig_A,self.orig_B]
+        model_outputs = [self.valid_A, self.valid_B,self.reconstructed_A,self.reconstructed_B,self.id_A, self.id_B]
+        self.gan = GAN(model_inputs=model_inputs,model_outputs=model_outputs,lambda_cycle=10.0,lambda_id=1.0)
 
-    def grabListOfFiles(self, startingDirectory, extension=".jpg"):
+    def train(self):
+        for e in range(self.EPOCHS):
+            b = 0
+            X_train_A_temp = deepcopy(self.X_train_A)
+            X_train_B_temp = deepcopy(self.X_train_B)
+            
+            print(f'Starting Epoch {e+1}/{self.EPOCHS}')
+            
+            while min(len(X_train_A_temp),len(X_train_B_temp))>self.BATCH:
+                # Keep track of Batches
+                b=b+1
+
+                print(f'Starting Batch {b}')
+
+                # Train Discriminator
+                # Grab Real Images for this training batch
+                count_real_images = int(self.BATCH)
+                starting_indexs = randint(0, 
+                (min(len(X_train_A_temp),len(X_train_B_temp))-count_real_images))
+                real_images_raw_A = X_train_A_temp[ starting_indexs : (starting_indexs + count_real_images) ]
+                real_images_raw_B = X_train_B_temp[ starting_indexs : (starting_indexs + count_real_images) ]
+
+                # Delete the images used until we have none left
+                X_train_A_temp = np.delete(X_train_A_temp,range(starting_indexs, (starting_indexs + count_real_images)),0)
+                X_train_B_temp = np.delete(X_train_B_temp,range(starting_indexs, (starting_indexs + count_real_images)),0)
+                batch_A = real_images_raw_A.reshape( count_real_images, self.W_A, self.H_A, self.C_A )
+                batch_B = real_images_raw_B.reshape( count_real_images, self.W_B, self.H_B, self.C_B )
+
+                if self.flipCoin():
+                    x_batch_A = batch_A
+                    x_batch_B = batch_B
+                    y_batch_A = np.ones([count_real_images,1])
+                    y_batch_B = np.ones([count_real_images,1])
+                else:
+                    x_batch_B = self.generator_A_to_B.Generator.predict(batch_A)
+                    x_batch_A = self.generator_B_to_A.Generator.predict(batch_B)
+                    y_batch_A = np.zeros([self.BATCH,1])
+                    y_batch_B = np.zeros([self.BATCH,1])
+                
+                # Now, train the discriminator with this batch
+                self.discriminator_A.Discriminator.trainable = True
+                discriminator_loss_A = self.discriminator_A.Discriminator.train_on_batch(x_batch_A,y_batch_A)[0]
+                self.discriminator_A.Discriminator.trainable = False
+                self.discriminator_B.Discriminator.trainable = True
+                discriminator_loss_B = self.discriminator_B.Discriminator.train_on_batch(x_batch_B,y_batch_B)[0]          
+                self.discriminator_B.Discriminator.trainable = False
+
+                 # Print discriminator loss
+                print(f'Batch {b}, Epoch {e+1}: Discriminator A Loss: {discriminator_loss_A}, Discriminator B Loss: {discriminator_loss_B}')
+
+                # In practice, flipping the label when training the generator improves convergence
+                if self.flipCoin(chance=0.9):
+                    y_generated_labels = np.ones([self.BATCH,1])
+                else:
+                    y_generated_labels =np.zeros([self.BATCH,1])
+                
+                generator_loss = self.gan.gan_model.train_on_batch([x_batch_A, x_batch_B],[y_generated_labels, y_generated_labels,x_batch_A, x_batch_B,x_batch_A, x_batch_B])
+                # Print generator loss
+                print(f'Batch {b}, Epoch {e+1}: Generator Loss: {generator_loss}')
+
+                print ('Batch: '+str(int(b))+', [Discriminator_A :: Loss: '+str(discriminator_loss_A)+'], [ Generator :: Loss: '+str(generator_loss)+']')
+                if b % self.CHECKPOINT == 0 :
+                    label = str(e)+'_'+str(b)
+                    self.plot_checkpoint(label)
+                    print(f'Checkpoint saved for Batch {b}, Epoch {e+1}')  # Print statement for checkpoint
+
+            print ('Epoch: '+str(int(e))+', [Discriminator_A :: Loss: '+str(discriminator_loss_A)+'], [ Generator :: Loss: '+str(generator_loss)+']')
+
+        return
+
+    def load_data(self, data_path, amount_of_data=1.0):
+        print(f'Loading data from {data_path}')  # Print statement for starting data loading
+
+        listOFFiles = self.grabListOfFiles(data_path, extension="jpg")
+        print(f'Found {len(listOFFiles)} files')  # Print the number of files found
+
+        X_train = np.array(self.grabArrayOfImages(listOFFiles))
+        height, width, channels = np.shape(X_train[0])
+        print(f'Image shape: Height {height}, Width {width}, Channels {channels}')  # Print image dimensions
+
+        X_train = X_train[:int(amount_of_data * float(len(X_train)))]
+        print(f'Using {len(X_train)} images for training (amount_of_data factor: {amount_of_data})')  # Print number of images being used
+
+        X_train = (X_train.astype(np.float32) - 127.5) / 127.5
+        X_train = np.expand_dims(X_train, axis=3)
+        print('Data loading and preprocessing completed')  # Completion statement
+
+        return X_train, height, width, channels
+
+
+    def grabListOfFiles(self, startingDirectory, extension=".webp"):
+        print(f'Searching for files with extension {extension} in {startingDirectory}')  # Starting search
+
         listOfFiles = []
         for file in os.listdir(startingDirectory):
             if file.endswith(extension):
-                fullPath = os.path.join(startingDirectory, file)
-                print("Loading file:", fullPath)  # Debug print
-                listOfFiles.append(fullPath)
+                listOfFiles.append(os.path.join(startingDirectory, file))
+
+        print(f'Found {len(listOfFiles)} files')  # Number of files found
         return listOfFiles
 
+    def flipCoin(self,chance=0.5):
+        return np.random.binomial(1, chance)
+
     def grabArrayOfImages(self, listOfFiles, gray=False):
+        print(f'Loading and processing {len(listOfFiles)} images')  # Starting image processing
+
         imageArr = []
         for f in listOfFiles:
+            print(f"Attempting to open file: {f}")  # Debug print statement
             try:
-                print(f"Attempting to open image: {f}")
                 if gray:
                     im = Image.open(f).convert("L")
                 else:
                     im = Image.open(f).convert("RGB")
-                imData = np.asarray(im)
-                imageArr.append(imData)
-                print(f"Loaded image: {f}")
-            except IOError as e:
-                print(f"Error opening file {f}: {e}")
-            except Exception as e:
-                print(f"Unexpected error with file {f}: {e}")
+            except FileNotFoundError:
+                print(f"File not found: {f}")  # Print statement if file is not found
+                continue  # Skip the current file and continue with the next
+            im = im.resize((self.RESIZE_WIDTH, self.RESIZE_HEIGHT))
+            imData = np.asarray(im)
+            imageArr.append(imData)
+
+        print('Image processing completed')  # Completion of image processing
         return imageArr
 
-    def train(self):
-        print("Starting training process")
+    def plot_checkpoint(self,b):
+        print(f'Creating checkpoint for batch {b}')  # Starting checkpoint creation
 
-        for epoch in range(self.EPOCHS):
-            print(f"Epoch {epoch+1}/{self.EPOCHS}")
+        orig_filename = "/data/batch_check_"+str(b)+"_original.png"
 
-            # Initialize generators
-            self.gen_A = self.train_generator_A()
-            self.gen_B = self.train_generator_B()
+        image_A = self.X_test_A[5]
+        image_A = np.reshape(image_A, [self.W_A_test,self.H_A_test,self.C_A_test])
+        fake_B = self.generator_A_to_B.Generator.predict(image_A.reshape(1, self.W_A, self.H_A, self.C_A ))
+        fake_B = np.reshape(fake_B, [self.W_A_test,self.H_A_test,self.C_A_test])
+        reconstructed_A = self.generator_B_to_A.Generator.predict(fake_B.reshape(1, self.W_A, self.H_A, self.C_A ))
+        reconstructed_A = np.reshape(reconstructed_A, [self.W_A_test,self.H_A_test,self.C_A_test])
+        checkpoint_images = np.array([image_A, fake_B, reconstructed_A])
 
-            batch_index = 0
-            while True:
-                try:
-                    batch_A = next(self.gen_A)
-                    batch_B = next(self.gen_B)
-                except StopIteration:
-                    # Reset the generators if exhausted and break the loop
-                    self.gen_A = self.train_generator_A()
-                    self.gen_B = self.train_generator_B()
-                    break  # Break the loop if any of the generators is exhausted
+        # Rescale images 0 - 1
+        checkpoint_images = 0.5 * checkpoint_images + 0.5
 
-                print(f"\nProcessing batch {batch_index + 1} of epoch {epoch + 1}")
-                
-                # Debugging: Check shapes and sample values
-                print(f"Shape of batch_A: {batch_A.shape}")
-                print(f"Sample value from batch_A: {batch_A[0,0,0,:]}")  # Print a small sample
-                print(f"Shape of batch_B: {batch_B.shape}")
-                print(f"Sample value from batch_B: {batch_B[0,0,0,:]}")  # Print a small sample
+        titles = ['Original', 'Translated', 'Reconstructed']
+        fig, axes = plt.subplots(1, 3)
+        for i in range(3):
+                image = checkpoint_images[i]
+                image = np.reshape(image,    
+                        [self.H_A_test,self.W_A_test,self.C_A_test])
+                axes[i].imshow(image)
+                axes[i].set_title(titles[i])
+                axes[i].axis('off')
+        fig.savefig("/data/batch_check_"+str(b)+".png")
+        plt.close('all')
+        print(f'Checkpoint image for batch {b} saved')  # Completion of checkpoint creation
 
-                # PatchGAN target labels for real and fake images
-                y_valid = np.ones((batch_A.shape[0],) + (int(self.W / 2**4), int(self.W / 2**4), 1))
-                y_fake = np.zeros((batch_B.shape[0],) + (int(self.W / 2**4), int(self.W / 2**4), 1))
-                print("Log 1")
-
-                # Generate a batch of new images (fake images)
-                fake_A = self.generator.Generator.predict(batch_B)
-                print("Log 2")
-
-                # Debugging: Check fake_A
-                print(f"Shape of fake_A: {fake_A.shape}")
-                print(f"Sample value from fake_A: {fake_A[0,0,0,:]}")  # Print a small sample
-
-                # Train the discriminator (real classified as ones and generated as zeros)
-                print("Training discriminator with real data...")
-                try:
-                    discriminator_loss_real = self.discriminator.Discriminator.train_on_batch([batch_A, batch_B], y_valid)[0]
-                    print("Log 3 - Discriminator real")
-                except Exception as e:
-                    print(f"Error during discriminator training with real data: {e}")
-                
-                # Train discriminator with fake data
-                print("Training discriminator with fake data...")
-                try:
-                    discriminator_loss_fake = self.discriminator.Discriminator.train_on_batch([fake_A, batch_B], y_fake)[0]
-                    print("Log 4 - Discriminator fake")
-                except Exception as e:
-                    print(f"Error during discriminator training with fake data: {e}")
-                full_loss = 0.5 * np.add(discriminator_loss_real, discriminator_loss_fake)
-
-
-                # Train the generator
-                generator_loss = self.gan.gan_model.train_on_batch([batch_A, batch_B], [y_valid, batch_A])
-                print("Log 5 - Generator")
-
-                print(f'Batch {batch_index+1}: [Discriminator Loss: {full_loss}], [Generator Loss: {generator_loss}]')
-
-                if batch_index % self.CHECKPOINT == 0:
-                    print("Checkpoint reached. Checkpoint saving skipped.")
-                    #label = f"{epoch}_{batch_index}"
-                    #print(f"Checkpoint reached: Saving models and generating plot for epoch {epoch + 1}, batch {batch_index + 1}")
-                    #self.plot_checkpoint(label)
-
-                batch_index += 1  # Increment batch index
-                
-                # Optionally reset the generators at the end of each epoch
-                self.gen_A = self.train_generator_A()
-                self.gen_B = self.train_generator_B()
-            print(f'Epoch {epoch+1} completed: [Discriminator Loss: {full_loss}], [Generator Loss: {generator_loss}]')
-
-        print("Training completed")
-
-    def plot_checkpoint(self, b):
-            # Ensuring the 'out' directory exists
-            output_dir = 'out'
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-
-            # Fetching one batch of images from each generator
-            try:
-                imgs_A = next(self.gen_A)
-                imgs_B = next(self.gen_B)
-            except StopIteration:
-                # Handle the case if the generator is exhausted
-                print("Generators exhausted. Unable to plot images.")
-                return
-
-            # Generate fake images
-            fake_A = self.generator.Generator.predict(imgs_B)
-
-            gen_imgs = np.concatenate([imgs_B, fake_A, imgs_A])
-
-            # Rescale images 0 - 1
-            gen_imgs = 0.5 * gen_imgs + 0.5
-
-            r, c = 3, 3
-            titles = ['Style', 'Generated', 'Original']  # Define titles here
-            fig, axs = plt.subplots(r, c)
-            cnt = 0
-            for i in range(r):
-                for j in range(c):
-                    if cnt < len(gen_imgs):  # Check to avoid going out of bounds
-                        axs[i, j].imshow(gen_imgs[cnt])
-                        axs[i, j].set_title(titles[i % len(titles)])  # To cycle through titles
-                        axs[i, j].axis('off')
-                        cnt += 1
-                    else:
-                        break  # Break the inner loop if we've processed all images
-
-            # Save the figure
-            output_file = os.path.join(output_dir, f"batch_check_{b}.png")
-            fig.savefig(output_file)
-            plt.close('all')
-
-            return output_file
+        return
