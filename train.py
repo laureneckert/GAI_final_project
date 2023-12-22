@@ -5,7 +5,6 @@ from gan import GAN
 from generator import Generator
 from discriminator import Discriminator
 from keras.layers import Input
-from keras.datasets import mnist
 from random import randint
 import numpy as np
 import matplotlib.pyplot as plt
